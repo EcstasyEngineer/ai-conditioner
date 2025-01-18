@@ -29,6 +29,19 @@
       cursor: pointer;
       user-select: none;
     }
+
+    #fullscreenButton {
+      position: absolute;
+      bottom: 20px; right: 120px;
+      z-index: 9999;
+      padding: 0.5em 0.8em;
+      background: rgba(255, 255, 255, 0.8);
+      border: 1px solid #aaa;
+      border-radius: 4px;
+      font-size: 16px;
+      cursor: pointer;
+      user-select: none;
+    }
   </style>
 </head>
 <body>
@@ -38,6 +51,7 @@
 
 <!-- Mute/unmute button (icon only) -->
 <button id="muteButton">🔇</button>
+<button id="fullscreenButton">Full Screen</button>
 
 <script>
 ////////////////////////////////////////////////////////////////////////////////
@@ -258,41 +272,51 @@ let gainNode = audioCtx.createGain();
 gainNode.gain.value = 0.0; // start muted
 gainNode.connect(audioCtx.destination);
 
-let bufferSize = 2048; // Increase buffer to ~46ms at 44.1kHz
-let scriptNode = audioCtx.createScriptProcessor(bufferSize, 0, 2);
-
-let bn1Carrier = 312.5;
-let bn1Beat    = 5.0;
-let bn1Volume  = 0.1;
-
-let bn2Carrier = 61.625;
-let bn2Beat    = 3.25;
-let bn2Volume  = 0.02;
-
-let sGlobalSample = 0;
-
-scriptNode.onaudioprocess = (event) => {
-  let outL = event.outputBuffer.getChannelData(0);
-  let outR = event.outputBuffer.getChannelData(1);
-  let sampleRate = audioCtx.sampleRate; // typically 44100 or 48000
-
-  for (let i = 0; i < bufferSize; i++) {
-    let t = (sGlobalSample + i) / sampleRate;
-
-    // mainSound() from your snippet, but in JS
-    let left =  bn1Volume * Math.sin(2.0 * Math.PI * (bn1Carrier + bn1Beat/2.0) * t)
-              + bn2Volume * Math.sin(2.0 * Math.PI * (bn2Carrier + bn2Beat/2.0) * t);
-
-    let right = bn1Volume * Math.sin(2.0 * Math.PI * (bn1Carrier - bn1Beat/2.0) * t)
-              + bn2Volume * Math.sin(2.0 * Math.PI * (bn2Carrier - bn2Beat/2.0) * t);
-
-    outL[i] = left;
-    outR[i] = right;
+const binauralWorklet = `
+class BinauralProcessor extends AudioWorkletProcessor {
+  constructor() {
+    super();
+    // Same data as before
+    this.bn1Carrier = 312.5;
+    this.bn1Beat    = 5.0;
+    this.bn1Volume  = 0.1;
+    this.bn2Carrier = 61.625;
+    this.bn2Beat    = 3.25;
+    this.bn2Volume  = 0.02;
+    this.sGlobalSample = 0;
+    this.sampleRate = sampleRate;
   }
-  sGlobalSample += bufferSize;
-};
 
-scriptNode.connect(gainNode);
+  process(inputs, outputs) {
+    const outL = outputs[0][0];
+    const outR = outputs[0][1];
+    if (!outL || !outR) return true;
+
+    for (let i = 0; i < outL.length; i++) {
+      let t = (this.sGlobalSample + i) / this.sampleRate;
+      let left =  this.bn1Volume * Math.sin(2.0 * Math.PI * (this.bn1Carrier + this.bn1Beat/2.0) * t)
+                + this.bn2Volume * Math.sin(2.0 * Math.PI * (this.bn2Carrier + this.bn2Beat/2.0) * t);
+      let right = this.bn1Volume * Math.sin(2.0 * Math.PI * (this.bn1Carrier - this.bn1Beat/2.0) * t)
+                + this.bn2Volume * Math.sin(2.0 * Math.PI * (this.bn2Carrier - this.bn2Beat/2.0) * t);
+      outL[i] = left;
+      outR[i] = right;
+    }
+    this.sGlobalSample += outL.length;
+    return true;
+  }
+}
+registerProcessor('binaural-processor', BinauralProcessor);
+`;
+
+(async () => {
+  // Build worklet code as a Blob
+  const blob = new Blob([binauralWorklet], { type: 'application/javascript' });
+  const url = URL.createObjectURL(blob);
+  await audioCtx.audioWorklet.addModule(url);
+
+  const workletNode = new AudioWorkletNode(audioCtx, 'binaural-processor', { outputChannelCount: [2] });
+  workletNode.connect(gainNode);
+})();
 
 ////////////////////////////////////////////////////////////////////////////////
 // 4) MUTE/UNMUTE BUTTON
@@ -314,6 +338,20 @@ function toggleMute() {
 }
 
 muteButton.addEventListener("click", toggleMute);
+
+function toggleFullscreen() {
+    if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(err => {
+            console.error(`Error attempting fullscreen: ${err.message}`);
+        });
+    } else {
+        if (document.exitFullscreen) {
+            document.exitFullscreen();
+        }
+    }
+}
+
+document.getElementById("fullscreenButton").addEventListener("click", toggleFullscreen);
 </script>
 </body>
 </html>
