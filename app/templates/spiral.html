@@ -21,24 +21,24 @@
       position: absolute;
       bottom: 20px; right: 20px;
       z-index: 9999;
-      padding: 0.5em 0.8em;
+      padding: 1.5em 2.4em;
       background: rgba(255, 255, 255, 0.8);
       border: 1px solid #aaa;
       border-radius: 4px;
-      font-size: 16px;
+      font-size: 38px;
       cursor: pointer;
       user-select: none;
     }
 
     #fullscreenButton {
       position: absolute;
-      bottom: 20px; right: 120px;
+      bottom: 20px; right: 280px;
       z-index: 9999;
-      padding: 0.5em 0.8em;
+      padding: 1.5em 2.4em;
       background: rgba(255, 255, 255, 0.8);
       border: 1px solid #aaa;
       border-radius: 4px;
-      font-size: 16px;
+      font-size: 40px;
       cursor: pointer;
       user-select: none;
     }
@@ -103,7 +103,7 @@ async function loadShader(url) {
 
 // Initialize WebGL after loading shaders
 async function initialize() {
-    const fragShaderSrc = await loadShader('/static/shaders/reversing_rainbow.frag');
+    const fragShaderSrc = await loadShader('/static/shaders/reversing_rainbow_blended.frag');
     //const fragShaderSrc = await loadShader('/static/shaders/radiating_dots.frag');
     // Compile shaders
     const fs = compileShader(fragShaderSrc, gl.FRAGMENT_SHADER);
