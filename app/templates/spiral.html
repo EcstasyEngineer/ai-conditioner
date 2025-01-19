@@ -54,58 +54,6 @@
 <button id="fullscreenButton">Full Screen</button>
 
 <script>
-////////////////////////////////////////////////////////////////////////////////
-// 1) GLSL FRAGMENT SHADER (Spiral)
-////////////////////////////////////////////////////////////////////////////////
-const fragShaderSrc = `#ifdef GL_ES
-precision highp float;
-#endif
-
-uniform float iTime;        // Time
-uniform vec2 iResolution;   // Resolution
-uniform vec2 uPointer;      // Pointer position (unused in this snippet)
-const float iTimeScale = 1.0; // Adjust the rate of movement of circles
-const float circleDensity = 36.0; // Number of "arms"
-const float waveDensity = 6.0;    // Density of circles per screen radius
-const float twoPi = 6.28318530718;
-const float circleRadius = 0.2; // Radius of circles
-
-void main(void)
-{
-    // Aspect-corrected screen coordinates [-1, 1]
-    vec2 uv = (gl_FragCoord.xy / iResolution.xy) * 2.0 - 1.0;
-    if (iResolution.y > iResolution.x) {
-        uv.y *= iResolution.y / iResolution.x;
-    } else {
-        uv.x *= iResolution.x / iResolution.y;
-    }
-
-    // Polar coordinates
-    float radius = length(uv);
-    float angle = atan(uv.y, uv.x);
-    angle = mod(angle + twoPi, twoPi); // Normalize angle to [0, 2π]
-
-    // Compute angle of the nearest arm
-    float armAngle = mod(angle * circleDensity, twoPi);
-
-    // Calculate the coordinates of the nearest circle center, given the arm index
-    float circleIndex = floor(armAngle / twoPi * circleDensity);
-    float distanceFromUVtoCircleCenter = 
-    length(uv - vec2(
-      radius * cos(angle + twoPi * circleIndex / circleDensity), 
-      radius * sin(angle + twoPi * circleIndex / circleDensity)
-    ));
-    
-    // Color assignment based on distance to the nearest circle center
-    vec3 color = vec3(0.0); // Default: black
-    if (distanceFromUVtoCircleCenter < circleRadius) {
-        color = vec3(1.0); // Inside a circle: white
-    }
-
-    // Set fragment color
-    gl_FragColor = vec4(color, 1.0);
-}
-`;
 
 ////////////////////////////////////////////////////////////////////////////////
 // 2) WEBGL INIT (Render the Spiral)
@@ -144,50 +92,79 @@ function compileShader(source, type) {
   return s;
 }
 
-// Build program
-const vs = compileShader(vertShaderSrc, gl.VERTEX_SHADER);
-const fs = compileShader(fragShaderSrc, gl.FRAGMENT_SHADER);
-const program = gl.createProgram();
-gl.attachShader(program, vs);
-gl.attachShader(program, fs);
-gl.linkProgram(program);
-if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-  console.error(gl.getProgramInfoLog(program));
+// Load fragment shader from external file
+async function loadShader(url) {
+    const response = await fetch(url);
+    if (!response.ok) {
+        throw new Error(`Failed to load shader: ${response.statusText}`);
+    }
+    return await response.text();
 }
-gl.useProgram(program);
 
-// Uniforms
-const uTime = gl.getUniformLocation(program, "iTime");
-const uResolution = gl.getUniformLocation(program, "iResolution");
+// Initialize WebGL after loading shaders
+async function initialize() {
+    const fragShaderSrc = await loadShader('/static/shaders/reversing_rainbow.frag');
+    //const fragShaderSrc = await loadShader('/static/shaders/radiating_dots.frag');
+    // Compile shaders
+    const fs = compileShader(fragShaderSrc, gl.FRAGMENT_SHADER);
+    const vs = compileShader(vertShaderSrc, gl.VERTEX_SHADER);
+    const program = gl.createProgram();
+    gl.attachShader(program, vs);
+    gl.attachShader(program, fs);
+    gl.linkProgram(program);
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+        console.error(gl.getProgramInfoLog(program));
+    }
+    gl.useProgram(program);
 
-// Full-screen quad
-const quadBuffer = gl.createBuffer();
-gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);
-const vertices = new Float32Array([
-  -1, -1,
-   1, -1,
-  -1,  1,
-  -1,  1,
-   1, -1,
-   1,  1
-]);
-gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+    // Uniforms
+    const uTime = gl.getUniformLocation(program, "iTime");
+    const uResolution = gl.getUniformLocation(program, "iResolution");
+    const uPointer = gl.getUniformLocation(program, "uPointer"); // Added pointer uniform
 
-// Attribute
-const aPosition = gl.getAttribLocation(program, "aPosition");
-gl.enableVertexAttribArray(aPosition);
-gl.vertexAttribPointer(aPosition, 2, gl.FLOAT, false, 0, 0);
+    // Initialize pointer to center
+    gl.uniform2f(uPointer, 0.0, 0.0);
 
-// Render loop
-function render(t) {
-  let timeSec = t * 0.001;
-  gl.viewport(0, 0, canvas.width, canvas.height);
-  gl.uniform1f(uTime, timeSec);
-  gl.uniform2f(uResolution, canvas.width, canvas.height);
-  gl.drawArrays(gl.TRIANGLES, 0, 6);
-  requestAnimationFrame(render);
+    // Full-screen quad
+    const quadBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);
+    const vertices = new Float32Array([
+      -1, -1,
+       1, -1,
+      -1,  1,
+      -1,  1,
+       1, -1,
+       1,  1
+    ]);
+    gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+
+    // Attribute
+    const aPosition = gl.getAttribLocation(program, "aPosition");
+    gl.enableVertexAttribArray(aPosition);
+    gl.vertexAttribPointer(aPosition, 2, gl.FLOAT, false, 0, 0);
+
+    // Render loop
+    function render(t) {
+      let timeSec = t * 0.001;
+      gl.viewport(0, 0, canvas.width, canvas.height);
+      gl.uniform1f(uTime, timeSec);
+      gl.uniform2f(uResolution, canvas.width, canvas.height);
+      gl.drawArrays(gl.TRIANGLES, 0, 6);
+      requestAnimationFrame(render);
+    }
+    requestAnimationFrame(render);
+
+    // Add mouse move event listener to update pointer position
+    canvas.addEventListener('mousemove', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const x = (e.clientX - rect.left) / rect.width * 2.0 - 1.0;
+        const y = -((e.clientY - rect.top) / rect.height * 2.0 - 1.0);
+        gl.uniform2f(uPointer, x, y);
+    });
 }
-requestAnimationFrame(render);
+
+// Start initialization
+initialize().catch(console.error);
 
 ////////////////////////////////////////////////////////////////////////////////
 // 3) AUDIO INIT (Binaural-ish tone)
