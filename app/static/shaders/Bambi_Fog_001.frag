@@ -1,9 +1,11 @@
 //** Minor edit of "Base warp fBM" shader by https://www.shadertoy.com/user/trinketMage*//
 #ifdef GL_ES
 precision highp float;
+#endif
 
-uniform float u_time;
-uniform vec2 u_resolution;
+uniform float iTime;       // Shadertoy-style time uniform
+uniform vec2 iResolution; // Shadertoy-style resolution uniform
+
 
 float colormap_red(float x) {
     if (x < 0.0) {
@@ -66,14 +68,13 @@ const mat2 mtx = mat2( 0.80,  0.60, -0.60,  0.80 );
 float fbm( vec2 p )
 {
     float f = 0.0;
-
-    f += 0.500000*noise( p + 0.4*u_time  ); p = mtx*p*2.02;
+    f += 0.500000*noise(p + 0.4*iTime);
+    p = mtx*p*2.02;
     f += 0.031250*noise( p ); p = mtx*p*2.01;
     f += 0.250000*noise( p ); p = mtx*p*2.03;
     f += 0.125000*noise( p ); p = mtx*p*2.01;
     f += 0.062500*noise( p ); p = mtx*p*2.04;
-    f += 0.015625*noise( p + sin(0.4*u_time) );
-
+    f += 0.015625*noise(p + sin(0.4*iTime));
     return f/0.96875;
 }
 
@@ -84,15 +85,8 @@ float pattern( in vec2 p )
 
 void main()
 {
-    vec2 uv = gl_FragCoord.xy/u_resolution.x;
+    vec2 uv = gl_FragCoord.xy/iResolution.x;
 	float shade = pattern(uv);
     gl_FragColor = vec4(colormap(0.9*shade).rgb, 1.8*shade);
 }
 
-/** SHADERDATA
-{
-	"title": "My Shader 0",
-	"description": "Lorem ipsum dolor",
-	"model": "person"
-}
-*/
