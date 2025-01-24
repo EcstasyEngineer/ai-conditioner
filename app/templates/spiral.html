@@ -103,7 +103,7 @@ async function loadShader(url) {
 
 // Initialize WebGL after loading shaders
 async function initialize() {
-    const fragShaderSrc = await loadShader('/static/shaders/Bambi_Fog_001.frag');
+    const fragShaderSrc = await loadShader('/static/shaders/reversing_pink_blended.frag');
     //const fragShaderSrc = await loadShader('/static/shaders/radiating_dots.frag');
     // Compile shaders
     const fs = compileShader(fragShaderSrc, gl.FRAGMENT_SHADER);
