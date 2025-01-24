@@ -8,8 +8,9 @@ uniform vec2  iResolution;
 // Spiral parameters
 const float iTimeScale    = 3.25;
 const float spiralDensity = 20.0;
-const float numSpirals = 3.0;
+const float numSpirals    = 3.0;
 const float boundaryBuffer = 1.0 / 9.0;  // Blend region width near each boundary
+const float pulseSpeed    = 1.2;         // Speed of the pulse
 
 // Returns a rainbow color based on spiral angle
 vec3 getSpiralColor(float angle, float radius)
@@ -17,15 +18,12 @@ vec3 getSpiralColor(float angle, float radius)
     // Spiral position
     float spiral = mod(angle + radius * spiralDensity, 6.2831); // 2π ~ 6.2831
     // Rainbow color mapping
-    float factor = 0.5 + 0.5 * cos(numSpirals*spiral);
+    float factor = 0.5 + 0.5 * cos(numSpirals * spiral);
     vec3 neonPink = vec3(1.0, 0.0, 0.6);
     vec3 white    = vec3(1.0);
     vec3 mixed    = mix(neonPink, white, factor);
 
-    float r = mixed.r;
-    float g = mixed.g;
-    float b = mixed.b;
-    return vec3(r, g, b);
+    return mixed;
 }
 
 void main(void)
@@ -38,78 +36,34 @@ void main(void)
         uv.x *= iResolution.x / iResolution.y;
     }
 
-    float radius = length(uv);
+    float pulse = 0.9 + 0.1 * sin(iTime * pulseSpeed); // Oscillates between 0.9 and 1.0
+    float radius = length(uv) * pulse;
     float angle  = atan(uv.y, uv.x);
 
-    // -------------------------------------
-    // 1) Identify which "region" we're in
-    //    regionIndex = floor(radius * 3.0)
-    //    => 0 => [0..1/3), 1 => [1/3..2/3), 2 => [2/3..1.0)
-    // -------------------------------------
+    // Identify region and determine reversals
     float regionIndex = floor(radius * 3.0);
-
-    // If radius >= 1.0, clamp to regionIndex=2 so we don't go out of bounds
-    // (in practice you can decide how you want to handle beyond radius=1).
     regionIndex = clamp(regionIndex, 0.0, 2.0);
-
-    // -------------------------------------
-    // 2) Check if the current region is reversed
-    //    isReverse = mod(regionIndex,2) -> 0 => normal, 1 => reversed
-    // -------------------------------------
     float isReverseCurrent = mod(regionIndex, 2.0);
-
-    // -------------------------------------
-    // 3) Compute the boundary to the next region
-    //    nextBoundary = (regionIndex + 1.0) / 3.0
-    // -------------------------------------
-    // If regionIndex=2, you could either skip or treat boundary=1.0
-    float nextBoundary = (regionIndex < 2.0)
-        ? (regionIndex + 1.0) / 3.0
-        : 1.0;  // or skip blending if radius>1
-
-    // Distance to that boundary
+    float nextBoundary = (regionIndex < 2.0) ? (regionIndex + 1.0) / 3.0 : 1.0;
     float distFromBoundary = abs(radius - nextBoundary);
+    float blendFactor = (distFromBoundary < boundaryBuffer) 
+        ? 1.0 - distFromBoundary / boundaryBuffer 
+        : 0.0;
+    blendFactor = clamp(blendFactor, 0.0, 1.0);
+    float isReverseNext = mod(regionIndex + 1.0, 2.0);
 
-    // -------------------------------------
-    // 4) Blend factor near boundary
-    //    If dist < boundaryBuffer => some blending
-    //    else fully in the current region
-    // -------------------------------------
-    float blendFactor = 0.0;
-    if (distFromBoundary < boundaryBuffer) {
-        blendFactor = 1.0 - distFromBoundary / boundaryBuffer;
-        blendFactor = clamp(blendFactor, 0.0, 1.0);
-    }
-
-    // -------------------------------------
-    // 5) Figure out the orientation for the NEXT region
-    //    next region index = regionIndex+1
-    // -------------------------------------
-    float isReverseNext = mod(regionIndex + 1.0, 2.0); // 0 => normal, 1 => reversed
-
-    // -------------------------------------
-    // 6) Compute both spirals
-    // -------------------------------------
+    // Compute spirals
     float angleNormal  = angle + iTime * iTimeScale;
     float angleReverse = angle - iTime * iTimeScale;
-
     vec3 colorNormal  = getSpiralColor(angleNormal,  radius);
     vec3 colorReverse = getSpiralColor(angleReverse, radius);
 
-    // -------------------------------------
-    // 7) Determine the primary color (current region)
-    //    and the secondary color (adjacent region)
-    // -------------------------------------
+    // Blend colors based on region and boundary
     vec3 colorPrimary   = (isReverseCurrent < 0.5) ? colorNormal : colorReverse;
     vec3 colorSecondary = (isReverseNext    < 0.5) ? colorNormal : colorReverse;
-
-    // Start with the primary color
-    vec3 finalColor = colorPrimary;
-
-    // Near the boundary, blend in the adjacent region color
-    if (blendFactor > 0.0) {
-        finalColor = mix(colorPrimary, colorSecondary, blendFactor);
-    }
+    vec3 finalColor = (blendFactor > 0.0) 
+        ? mix(colorPrimary, colorSecondary, blendFactor) 
+        : colorPrimary;
 
     gl_FragColor = vec4(finalColor, 1.0);
 }
