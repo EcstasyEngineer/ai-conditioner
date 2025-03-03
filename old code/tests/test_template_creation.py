@@ -1,7 +1,7 @@
 # tests/test_template_creation.py
 import unittest
 import os
-from app.utils.convert_lines import load_verb_conjugations
+from old.utils.convert_lines import load_verb_conjugations
 
 class TestTemplateCreation(unittest.TestCase):
 

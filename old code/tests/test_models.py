@@ -2,8 +2,8 @@
 import unittest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from app.database.models import Base, User, Line
-from app.database.database import get_session
+from old.database.models import Base, User, Line
+from old.database.database import get_session
 
 class TestModels(unittest.TestCase):
 

@@ -1,6 +1,6 @@
 # Assuming the structure of your project and the presence of these modules
-from app.database.loader import insert_into_db
-from app.database.models import Line, Base  # Assuming your model definitions are here
+from old.database.loader import insert_into_db
+from old.database.models import Line, Base  # Assuming your model definitions are here
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 import boto3

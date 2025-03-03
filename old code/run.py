@@ -1,6 +1,6 @@
-from app import create_app
+from old import create_app
 import os
-from app.database.models import create_tables
+from old.database.models import create_tables
 from dotenv import load_dotenv
 
 app = create_app()

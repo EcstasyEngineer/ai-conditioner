@@ -2,7 +2,24 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Launch Flask App",
+      "name": "Next.js: debug server-side",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "npm run dev"
+    },
+    {
+      "name": "Next.js: debug full stack",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "npm run dev",
+      "serverReadyAction": {
+        "pattern": "Next.js server ready on .*:(\\d+)",
+        "uriFormat": "http://127.0.0.1:%s",
+        "action": "debugWithChrome"
+      }
+    },
+    {
+      "name": "Launch Flask App (legacy)",
       "type": "debugpy",
       "request": "launch",
       "program": "${workspaceFolder}/run.py",
@@ -15,75 +32,5 @@
       "console": "integratedTerminal",
       "justMyCode": true
     },
-    {
-      "name": "Run Template Creation Utility",
-      "type": "debugpy",
-      "request": "launch",
-      "program": "${workspaceFolder}/app/utils/template_creation.py",
-      "console": "integratedTerminal",
-      "args": [
-        "--input_file",
-        "${workspaceFolder}/data/preconverted/sample_input.txt",
-        "--output_file",
-        "${workspaceFolder}/data/converted/output_template.txt",
-        "--dominant_name",
-        "Master",
-        "--subject_name",
-        "Slave"
-      ]
-    },
-    {
-      "name": "Run Line Generator Utility",
-      "type": "debugpy",
-      "request": "launch",
-      "program": "${workspaceFolder}/app/utils/line_generator.py",
-      "console": "integratedTerminal",
-      "args": [
-        "--model",
-        "gpt-4",
-        "--input_file",
-        "${workspaceFolder}/data/preconverted/sample_input.txt",
-        "--output_file",
-        "${workspaceFolder}/data/converted/generated_lines.txt",
-        "--theme",
-        "submission"
-      ]
-    },
-    {
-      "name": "Run AWS Polly Integration",
-      "type": "debugpy",
-      "request": "launch",
-      "program": "${workspaceFolder}/app/utils/aws_polly_integration.py",
-      "console": "integratedTerminal",
-      "args": [
-        "--generate_missing_audio"
-      ],
-      "env": {
-        "AWS_ACCESS_KEY_ID": "your-access-key",
-        "AWS_SECRET_ACCESS_KEY": "your-secret-key",
-        "AWS_REGION": "us-east-1"
-      }
-    },
-    {
-      "name": "Run Text-to-Speech Utility",
-      "type": "debugpy",
-      "request": "launch",
-      "program": "${workspaceFolder}/app/utils/text_to_speech.py",
-      "console": "integratedTerminal",
-      "args": [
-        "--text",
-        "Your sample text here",
-        "--output_path",
-        "${workspaceFolder}/app/static/audio/generated_audio.mp3"
-      ]
-    },
-    {
-      "name": "Run Unittests",
-      "type": "debugpy",
-      "request": "launch",
-      "program": "${workspaceFolder}/run_tests.py",
-      "console": "integratedTerminal",
-      "justMyCode": true
-    }
   ]
 }

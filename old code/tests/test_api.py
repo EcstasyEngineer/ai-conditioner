@@ -1,6 +1,6 @@
 # tests/test_api.py
 import unittest
-from app import create_app
+from old import create_app
 from flask.testing import FlaskClient
 
 class TestAPI(unittest.TestCase):

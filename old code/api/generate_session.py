@@ -2,8 +2,8 @@ import uuid
 from flask import request, jsonify
 from sqlalchemy import func
 
-from app.database.database import get_session
-from app.database.models import Line, Template, Theme
+from old.database.database import get_session
+from old.database.models import Line, Template, Theme
 
 def generate_session():
     """

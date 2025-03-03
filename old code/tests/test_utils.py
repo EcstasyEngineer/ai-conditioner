@@ -1,6 +1,6 @@
 # tests/test_utils.py
 import unittest
-from app.utils.convert_lines import process_file_to_template
+from old.utils.convert_lines import process_file_to_template
 import os
 
 class TestUtils(unittest.TestCase):
